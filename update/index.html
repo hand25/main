@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>팀 빌딩 시스템</title>
+    <style>
+        :root {
+            --primary: #2ea44f;
+            --primary-hover: #2c974b;
+            --danger: #d73a49;
+            --danger-hover: #cb2431;
+            --bg-color: #f6f8fa;
+            --card-bg: #ffffff;
+            --text-main: #24292e;
+            --text-sub: #586069;
+            --border-color: #e1e4e8;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            text-align: center;
+            color: var(--text-main);
+            margin-bottom: 10px;
+        }
+        .notice {
+            background-color: #f1f8ff;
+            border: 1px solid #c8e1ff;
+            color: #005cc5;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 0.95em;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        .teams-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+        .team-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .team-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #0366d6;
+            border-bottom: 2px solid #eaecef;
+            padding-bottom: 6px;
+        }
+        .member-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 16px 0;
+            min-height: 80px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .member-item {
+            background-color: #fafbfc;
+            border: 1px solid #e1e4e8;
+            padding: 6px 10px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            font-size: 0.9em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .member-item span.empty {
+            color: var(--text-sub);
+            font-style: italic;
+        }
+        .btn-group {
+            display: flex;
+            gap: 6px;
+        }
+        button {
+            border: none;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            color: white;
+            flex: 1;
+            transition: background-color 0.2s;
+            font-size: 0.9em;
+        }
+        .btn-join {
+            background-color: var(--primary);
+        }
+        .btn-join:hover {
+            background-color: var(--primary-hover);
+        }
+        .btn-cancel {
+            background-color: var(--danger);
+        }
+        .btn-cancel:hover {
+            background-color: var(--danger-hover);
+        }
+        .status-box {
+            text-align: center;
+            font-size: 0.9em;
+            color: var(--text-sub);
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>👥 팀 빌딩 시스템</h1>
+    
+    <div class="notice">
+        ℹ️ <strong>사용 안내</strong><br>
+        1. 원하는 팀의 <strong>[참가]</strong> 또는 <strong>[취소]</strong> 버튼을 누르세요.<br>
+        2. 깃허브 이슈 페이지가 열리면 제목은 그대로 두고, 본문에 <strong>본인 이름</strong>을 적은 뒤 이슈를 등록(참가)하거나 본인의 이름이 적힌 기존 이슈를 찾아 닫기(취소) 하세요.<br>
+        3. 다른 PC에서도 실시간으로 동기화되어 누구든 전체 팀 현황을 확인할 수 있습니다.
+    </div>
+
+    <div class="teams-container" id="teams-container">
+        <!-- 동적으로 팀 카드 생성 -->
+    </div>
+
+    <div class="status-box" id="loading-status">
+        깃허브에서 팀 현황을 불러오는 중...
+    </div>
+
+    <script>
+        // 🚨 본인의 깃허브 아이디와 저장소 이름으로 수정하세요!
+        const username = "YOUR_USERNAME";
+        const repoName = "YOUR_REPO_NAME";
+
+        const teamNames = ["1팀", "2팀", "3팀", "4팀"];
+
+        // 팀 카드 구조 생성
+        function renderTeamsStructure() {
+            const container = document.getElementById('teams-container');
+            container.innerHTML = '';
+
+            teamNames.forEach((team, index) => {
+                const teamId = `team-${index + 1}`;
+                const card = document.createElement('div');
+                card.className = 'team-card';
+                card.innerHTML = `
+                    <div class="team-title">${team}</div>
+                    <ul class="member-list" id="list-${teamId}">
+                        <li class="member-item"><span class="empty">불러오는 중...</span></li>
+                    </ul>
+                    <div class="btn-group">
+                        <button class="btn-join" onclick="actionTeam('${team}', 'join')">참가</button>
+                        <button class="btn-cancel" onclick="actionTeam('${team}', 'cancel')">취소</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 참가 또는 취소 버튼 동작 (깃허브 이슈 생성 또는 이슈 목록(검색) 안내)
+        function actionTeam(teamName, mode) {
+            if (mode === 'join') {
+                const issueTitle = `[팀참가] ${teamName}`;
+                const issueBody = `여기에 본인의 이름을 입력해주세요!`;
+                const issueUrl = `https://github.com/${username}/${repoName}/issues/new?title=${encodeURIComponent(issueTitle)}&body=${encodeURIComponent(issueBody)}`;
+                window.open(issueUrl, '_blank');
+            } else {
+                // 취소의 경우 해당 팀의 이슈 목록을 볼 수 있는 링크로 안내
+                const issuesUrl = `https://github.com/${username}/${repoName}/issues?q=is%3Aopen+is%3Aissue+%5B팀참가%5D+${encodeURIComponent(teamName)}`;
+                alert(`팀 신청을 취소하려면:
+열리는 페이지에서 본인 이름이 적힌 이슈를 찾아 클릭한 후, 하단의 [Close issue] 버튼을 눌러주세요!`);
+                window.open(issuesUrl, '_blank');
+            }
+        }
+
+        // 깃허브 이슈 API를 이용해 모든 팀원 현황 불러오기 (다른 PC에서도 공유됨)
+        async function loadTeamMembers() {
+            const statusBox = document.getElementById('loading-status');
+            try {
+                const response = await fetch(`https://api.github.com/repos/${username}/${repoName}/issues?state=open&sort=created&direction=asc`);
+                const issues = await response.json();
+
+                if (!Array.isArray(issues)) {
+                    statusBox.innerHTML = '⚠️ 깃허브 저장소 설정을 확인해주세요.';
+                    return;
+                }
+
+                const teamMembersData = { "1팀": [], "2팀": [], "3팀": [], "4팀": [] };
+
+                issues.forEach(issue => {
+                    if (issue.title && issue.title.startsWith('[팀참가]')) {
+                        for (let t of teamNames) {
+                            if (issue.title.includes(t)) {
+                                let memberName = issue.body ? issue.body.trim().split('\n')[0] : '';
+                                if (!memberName || memberName.includes('여기에 본인의 이름을')) {
+                                    memberName = issue.user.login;
+                                }
+                                teamMembersData[t].push({
+                                    name: memberName,
+                                    githubId: issue.user.login
+                                });
+                            }
+                        }
+                    }
+                });
+
+                teamNames.forEach((team, index) => {
+                    const teamId = `team-${index + 1}`;
+                    const listEl = document.getElementById(`list-${teamId}`);
+                    listEl.innerHTML = '';
+
+                    const members = teamMembersData[team];
+                    if (members.length === 0) {
+                        listEl.innerHTML = `<li class="member-item"><span class="empty">아직 팀원이 없습니다.</span></li>`;
+                    } else {
+                        members.forEach(m => {
+                            const li = document.createElement('div');
+                            li.className = 'member-item';
+                            li.innerHTML = `<span><strong>${escapeHtml(m.name)}</strong></span> <span style="font-size:0.8em; color:#586069;">(@${m.githubId})</span>`;
+                            listEl.appendChild(li);
+                        });
+                    }
+                });
+
+                statusBox.innerHTML = '✅ 팀 배정 현황이 실시간으로 동기화되었습니다.';
+            } catch (error) {
+                console.error(error);
+                statusBox.innerHTML = '❌ 데이터를 불러오지 못했습니다.';
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        renderTeamsStructure();
+        loadTeamMembers();
+    </script>
+</body>
+</html>
